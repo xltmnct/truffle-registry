@@ -2,11 +2,16 @@
 
 namespace App\Exceptions;
 
+use App\Traits\ApiResponses;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class Handler extends ExceptionHandler
 {
+    use ApiResponses;
+
     /**
      * A list of exception types with their corresponding custom log levels.
      *
@@ -46,5 +51,17 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    public function render($request, Throwable $e)
+    {
+        if ($e instanceof ValidationException) {
+            return $this->apiResponseFail(JsonResponse::HTTP_UNPROCESSABLE_ENTITY,
+                'Validation request errors',
+                $e->errors()
+            );
+        }
+
+        return $this->apiResponseFail(JsonResponse::HTTP_INTERNAL_SERVER_ERROR, $e->getMessage());
     }
 }

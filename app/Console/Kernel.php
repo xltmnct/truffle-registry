@@ -2,7 +2,8 @@
 
 namespace App\Console;
 
-use App\Jobs\ImportTruffle;
+use App\Jobs\GenerateRestaurantsFile;
+use App\Jobs\ImportManufacturerFile;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -16,7 +17,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->job(new ImportTruffle())->everyFiveMinutes();
+        $schedule->job(new ImportManufacturerFile())->everyFiveMinutes();
+        $schedule->job(new GenerateRestaurantsFile())->everyThreeMinutes();
     }
 
     /**
