@@ -6,20 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private string $tableName = 'truffles';
+
     public function up()
     {
-        Schema::create('truffles', function (Blueprint $table) {
+        Schema::create($this->tableName, function (Blueprint $table) {
             $table->id();
-            $table->string('sku')->unique();
-            $table->integer('weight')->nullable();
-            $table->double('price')->nullable();
-            $table->timestamp('created_at')->nullable();
-            $table->timestamp('expires_at')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('sku')->unique()->comment('Stock keeping unit');
+            $table->integer('weight');
+            $table->decimal('price');
+            $table->timestamp('created_at');
+            $table->timestamp('expires_at');
+
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users')
+                ->onDelete('cascade');
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('truffles');
+        Schema::dropIfExists($this->tableName);
     }
 };

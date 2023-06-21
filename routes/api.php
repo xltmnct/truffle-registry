@@ -1,7 +1,14 @@
 <?php
 
-use App\Http\Controllers\ApiController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\TruffleController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/token', [ApiController::class, 'token']);
-Route::get('/register-truffle', [ApiController::class, 'registerTruffle']);
+Route::post('auth/login', [AuthController::class, 'login'])
+    ->name('auth.login');
+
+Route::apiResource('truffles', TruffleController::class)
+    ->middleware('auth:sanctum')
+    ->only([
+        'store'
+    ]);

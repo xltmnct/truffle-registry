@@ -13,9 +13,12 @@ class Truffle extends Authenticatable
 
     protected $fillable = [
         'sku',
+        'user_id',
         'weight',
         'price',
         'created_at',
         'expires_at',
     ];
+
+    // TODO add relation with User model
 }
