@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Helpers\RedisHelper;
 use App\Models\Truffle;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,8 +14,6 @@ use Illuminate\Support\Facades\Redis;
 class ProcessTruffle implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public const REDIS_KEY = 'truffles';
     public const EXPORT_FILE = 'export.csv';
 
     protected $truffle;
@@ -26,7 +25,7 @@ class ProcessTruffle implements ShouldQueue
 
     public function handle()
     {
-        if ($this->isAlreadyProcessed($this->truffle->sku)) {
+        if (RedisHelper::isSetMember(RedisHelper::TRUFFLES_REDIS_KEY, $this->truffle->sku)) {
             return;
         }
 
@@ -36,13 +35,8 @@ class ProcessTruffle implements ShouldQueue
 
         extract($this->truffle->toArray());
         fputcsv($output, [$sku, $weight, $price, $expires_at]);
-        Redis::sadd(self::REDIS_KEY, $sku);
+        Redis::sadd(RedisHelper::TRUFFLES_REDIS_KEY, $sku);
 
         fclose($output);
-    }
-
-    private function isAlreadyProcessed($sku)
-    {
-        return Redis::sismember(self::REDIS_KEY, (string)$sku);
     }
 }
