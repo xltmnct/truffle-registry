@@ -1,39 +1,21 @@
-[Truffle](https://en.wikipedia.org/wiki/Truffle) is the diamond of the kitchen.
-Millions of people hunt for truffles and thousands of restaurants compete for
-the best specimens.
+**1. **Review****:
+-  Методы в контроллерах не по назначению. Думаю, не совсем правильный подход использовать один контроллер для всех методов. Желательно разделить их по сущностям, с которыми они связаны, либо с действиями, которые метод контроллера должен выполнять
+-  Не используется валидация из коробки, которая заметно улучшает качество кода и имеет место быть до того, как запрос войдет в контроллер
+-  Жирные контроллеры, слишком много ответственности на контроллере, хотя его предназначение - получать запрос оптаврялять дальше в сервисные слои, где должна выполняться вся операционная и безнес-логика
+-  Не стандартизированный респонс для фронтента. Не критично, но очень облегачет работу товарищам фронтендерам и добавляет чистоты и эстетичности
+-  Неправильная обработка файла csv, по нынешней реализации, написанная реализация работает только с первой сторокой файла
 
-Our company connects truffle hunters and large restaurant chains. To do this,
-hunters are provided with a form for registering found truffles. In addition,
-we also cooperate with a large cultivator of homemade truffles, which shares
-the register of their products with us.
+**2. **Improvements****:
+- Создал два новых контроллера Auth и Truffle. Поменял название роутов, на те, которые считаю более подходящие по смысли и по фреймворку
+- Для валдиации запросов использую FormRequest
+- Для работы с бизнес логикой и бд, создал репозитории
+- Создал кастомные экзепшны, которые очень полезны для api
+- Стандартизировал модель респонса, как и для успешных так и для неуспешных ответов
+- В классе Handler улавливаю все ошибки и оборачиваю в стандартный респонс. Также данная реализация скрывает trace ошибки, что хорошо в плане безопасности
+- В роутах, для проверки, авторизован ли пользователь создал группу роутов, которые проверяются AuthMiddleware
+- События запускаемые после создания сущности Truffle обрабатываются через TruffleObserver. Очень удобно, но не совсем прозрачная реализация, знающий фреймворк разработчик сразу поймет, плохо для новчиков
+- Поправил обработку csv файла. Создал джобу, которая обрабатывает пачки получаенные из файла также через очередь. Поможет улучшить производительность
+- При чтении файла использовал ген.функцию
 
-To meet the needs of our customers, we have developed a service that allows
-authorized truffle hunters to register their finds through a convenient API
-that allows them to report the price and weight of a truffle.
-
-In addition, we process the manufacturer's database, which is sent to us via
-FTP. Unfortunately, they cannot share data only about new truffles, so they
-send their full register of truffles every time. Now there are only about
-10,000 units in their register, but according to their plan, aggressive 
-cultivation will allow them to accumulate more than a million truffles in stock 
-by the end of the year.
-
-Our service must process data from these sources and compile a common register 
-of truffles in a convenient CSV format, which restaurant chains will take over 
-the FTP protocol.
-
-Our internal development team has successfully implemented of this service and
-our QA team made sure that what has been done is exactly what we wanted.
-
-However since this service is incredibly important for our business, we 
-decided to involve an independent expert to assess the technical quality of
-the result. The solution will evolve in the future, so the quality of the 
-code is of most importance.
-
-**Your task will be:**
-
-- _[mandatory]_ conduct a code review and describe the problems, if any;
-- _[mandatory]_ describe the improvements if they are required;
-- _[preferably]_ run the project using any convenient tool, like Laravel Sail;
-- _[preferably]_ implement these improvements and make a pull request;
-- _[optional]_ ensure the quality of the tests;
+**3. **Deployment****:
+- Использовал Laravel Sail для запуска приложения с инстансами PostgreSQL и Redis
