@@ -2,7 +2,11 @@
 
 namespace App\Exceptions;
 
+use App\Traits\ApiResponder;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -46,5 +50,32 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    public function render($request, Throwable $e)
+    {
+        if ($e instanceof ValidationException) {
+            return ApiResponder::error(
+                $e->getMessage(),
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                $e->errors()
+            );
+        }
+
+        if ($e instanceof ApiException) {
+            return ApiResponder::error(
+                $e->getMessage(),
+                $e->getCode()
+            );
+        }
+
+        if ($e instanceof NotFoundHttpException) {
+            return ApiResponder::error(
+                'Not found',
+                Response::HTTP_NOT_FOUND
+            );
+        }
+
+        return ApiResponder::error($e->getMessage());
     }
 }

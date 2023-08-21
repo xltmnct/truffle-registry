@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use Generator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -13,8 +14,8 @@ class ImportTruffle implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public const REDIS_KEY = 'truffles';
     public const SOURCE_FILE = 'import.csv';
+    public const BATCH_SIZE = 1000;
 
     protected $truffle;
 
@@ -22,25 +23,35 @@ class ImportTruffle implements ShouldQueue
     {
         $inputPath = storage_path('app') . DIRECTORY_SEPARATOR . self::SOURCE_FILE;
         file_exists(dirname($inputPath)) || mkdir(dirname($inputPath), 0777, true);
-        $input = fopen($inputPath, 'a+');
+        $generator = $this->reader($inputPath);
 
-        $outputPath = storage_path('app') . DIRECTORY_SEPARATOR . ProcessTruffle::EXPORT_FILE;
-        file_exists(dirname($outputPath)) || mkdir(dirname($outputPath), 0777, true);
-        $output = fopen($outputPath, 'a+');
+        $count = 0;
+        $batch = [];
+        foreach ($generator as $line) {
+            if (blank($line)) continue;
 
-        while ([$sku, $weight, $price, $expiresAt] = fgetcsv($input, 1000)) {
-            if (!$this->isAlreadyProcessed($sku)) {
-                fputcsv($output, [$sku, $weight, $price, $expiresAt]);
-                Redis::sadd(self::REDIS_KEY, $sku);
+            $batch[] = $line;
+            $count++;
+            if ($count >= self::BATCH_SIZE) {
+                dispatch(new ImportTruffleBatch($batch));
+                $batch = [];
+                $count = 0;
             }
         }
 
-        fclose($input);
-        fclose($output);
+        if (! empty($batch)) {
+            dispatch(new ImportTruffleBatch($batch));
+        }
     }
 
-    private function isAlreadyProcessed($sku)
+    function reader($filePath): Generator
     {
-        return Redis::sismember(self::REDIS_KEY, (string)$sku);
+        $file    = fopen($filePath, 'a+');
+
+        while (($data = fgetcsv($file)) !== false) {
+            yield $data;
+        }
+
+        fclose($file);
     }
 }
