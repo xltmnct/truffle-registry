@@ -3,21 +3,12 @@
 namespace App\Jobs;
 
 use App\Models\Truffle;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
-class ProcessTruffle implements ShouldQueue
+class ProcessTruffle extends BaseTruffleJob
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public const REDIS_KEY = 'truffles';
-    public const EXPORT_FILE = 'export.csv';
-
-    protected $truffle;
+    protected Truffle $truffle;
 
     public function __construct(Truffle $truffle)
     {
@@ -30,19 +21,34 @@ class ProcessTruffle implements ShouldQueue
             return;
         }
 
-        $path = storage_path('app') . DIRECTORY_SEPARATOR . self::EXPORT_FILE;
-        file_exists(dirname($path)) || mkdir(dirname($path), 0777, true);
-        $output = fopen($path, 'a+');
+        $exportFile = $this->getExportFilePath();
+        $this->processAndWriteData($exportFile);
 
-        extract($this->truffle->toArray());
-        fputcsv($output, [$sku, $weight, $price, $expires_at]);
-        Redis::sadd(self::REDIS_KEY, $sku);
-
-        fclose($output);
+        $this->sendToSftp($exportFile);
     }
 
-    private function isAlreadyProcessed($sku)
+    protected function processAndWriteData(string $exportFile): void
     {
-        return Redis::sismember(self::REDIS_KEY, (string)$sku);
+        $streamExportFile = Storage::readStream($exportFile);
+
+        try {
+            $truffleData = $this->truffle->toArray();
+            fputcsv($streamExportFile, array_values($truffleData));
+            $this->setAdd($truffleData['sku']);
+        } finally {
+            fclose($streamExportFile);
+        }
+    }
+
+    protected function sendToSftp(string $exportFile): void
+    {
+        $sftpFileName = config('sftp.sftp_file_export');
+
+        try {
+            $streamExportFile = Storage::disk('local')->readStream($exportFile);
+            Storage::disk('sftp')->writeStream($sftpFileName, $streamExportFile);
+        } catch (\Exception $e) {
+            Log::error('Error sending truffle data to SFTP: ' . $e->getMessage());
+        }
     }
 }
