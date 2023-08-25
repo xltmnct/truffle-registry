@@ -46,11 +46,26 @@ class ImportTruffle extends BaseTruffleJob
 
     protected function processAndWriteData($importStream, $exportStream): void
     {
-        while ($data = fgetcsv($importStream, 1000)) {
-            [$sku, $weight, $price, $expiresAt] = $data;
-            if (!$this->isAlreadyProcessed($sku)) {
-                fputcsv($exportStream, [$sku, $weight, $price, $expiresAt]);
-                $this->setAdd($sku);
+        //max lines for one iteration, it can be changed
+        $chunkSize = 1000;
+
+        while (!feof($importStream)) {
+            $chunk = [];
+
+            for ($i = 0; $i < $chunkSize; $i++) {
+                $data = fgetcsv($importStream, 1000);
+                if ($data !== false) {
+                    $chunk[] = $data;
+                } else {
+                    break;
+                }
+            }
+
+            foreach ($chunk as [$sku, $weight, $price, $expiresAt]) {
+                if (!$this->isAlreadyProcessed($sku)) {
+                    fputcsv($exportStream, [$sku, $weight, $price, $expiresAt]);
+                    $this->setAdd($sku);
+                }
             }
         }
     }
