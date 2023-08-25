@@ -1,47 +1,16 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Jobs;
+
 
 use App\Jobs\ImportTruffle;
 use App\Jobs\ProcessTruffle;
 use App\Models\Truffle;
-use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-class TruffleTest extends TestCase
+class ProcessJobTest extends TestCase
 {
-    use RefreshDatabase;
-
-    public function test_user_can_get_token()
-    {
-        // Given an existing user
-        $user = User::factory()->create();
-
-        // A user who knows their credentials can obtain a token
-        $this->post('/api/token', [
-            'email' => $user->email,
-            'password' => 'password'
-        ])->assertOk();
-    }
-
-    public function test_authenticated_user_can_register_truffle()
-    {
-        // Given an authenticated user
-        $user = User::factory()->create();
-        $response = $this->post('/api/token', [
-            'email' => $user->email, 'password' => 'password'
-        ]);
-
-        // He/she can register a truffle
-        $this->get('/api/register-truffle?weight=1&price=1.1', [
-            'Authorization' => 'Bearer ' . $response->getContent()
-        ])
-            ->assertOk()
-            ->assertContent('{"status":"success"}');
-    }
-
     public function test_truffle_processor_exports_truffles()
     {
         // Given a truffle
